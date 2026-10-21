@@ -4,10 +4,10 @@ import requests
 from datetime import datetime
 
 # Konfigurasi Halaman
-st.set_page_config(page_title="AI Live API Parlay Analyzer", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Top 5 Auto Parlay Builder", page_icon="⚽", layout="centered")
 
-st.title("⚽ AI Live API Parlay Analyzer")
-st.markdown("Pilih langsung pertandingan hari ini yang ditarik secara otomatis dari **server data sepak bola resmi**, lalu biarkan AI menganalisisnya secara mendalam!")
+st.title("⚽ AI Top 5 Auto Parlay Builder")
+st.markdown("Aplikasi pintar yang otomatis memindai seluruh jadwal hari ini, menyaring, dan memilih **5 pertandingan terbaik (Top 5 Legs)** dengan probabilitas menang tertinggi untuk *bill parlay*.")
 
 # 1. Konfigurasi API Keys dari Streamlit Secrets
 try:
@@ -23,7 +23,7 @@ if not api_ready:
 
 today_date = datetime.now().strftime("%Y-%m-%d")
 
-# 2. Fungsi Mengambil Jadwal Pertandingan Hari Ini dari API Resmi
+# 2. Fungsi Mengambil Otomatis Jadwal Pertandingan Hari Ini
 @st.cache_data(ttl=600)
 def fetch_todays_matches(api_key):
     url = "https://api.football-data.org/v4/matches"
@@ -38,99 +38,60 @@ def fetch_todays_matches(api_key):
     except Exception:
         return []
 
-st.subheader("📅 Pilih Pertandingan Hari Ini")
-
-matches_list = []
-if api_ready:
-    with st.spinner("Sedang memuat daftar pertandingan live dari server resmi..."):
-        raw_matches = fetch_todays_matches(FOOTBALL_KEY)
-        
-        if raw_matches:
-            match_options = {}
-            for m in raw_matches:
-                home = m['homeTeam']['name']
-                away = m['awayTeam']['name']
-                competition = m['competition']['name']
-                utc_time = m['utcDate']
-                
-                label = f"[{competition}] {home} vs {away} ({utc_time[11:16]} UTC)"
-                match_options[label] = {"home": home, "away": away, "competition": competition}
-            
-            selected_labels = st.multiselect(
-                "Pilih satu atau beberapa pertandingan untuk dimasukkan ke slip parlay:",
-                options=list(match_options.keys())
-            )
-            
-            for label in selected_labels:
-                matches_list.append(match_options[label])
-        else:
-            st.info("ℹ️ Tidak ada jadwal terjadwal di API untuk hari ini. Gunakan input manual di bawah.")
-
-# Opsi Cadangan Input Manual
-if not matches_list:
-    st.markdown("*(Atau masukkan manual jika daftar di atas kosong)*")
-    manual_home = st.text_input("Tim Home", "")
-    manual_away = st.text_input("Tim Away", "")
-    if manual_home and manual_away:
-        matches_list.append({"home": manual_home, "away": manual_away, "competition": "Custom Match"})
-
-# 3. Tombol Eksekusi Analisa Mendalam
-if st.button("🚀 Jalankan Analisa Mendalam Berbasis Live Data", type="primary"):
-    if not matches_list:
-        st.warning("⚠️ Silakan pilih minimal satu pertandingan terlebih dahulu.")
-    elif not api_ready:
+# Tombol Utama untuk Generate Top 5 Parlay
+st.markdown(f"📅 **Jadwal Hari Ini:** `{today_date}`")
+if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
+    if not api_ready:
         st.error("❌ Konfigurasi API belum lengkap.")
     else:
-        st.divider()
-        st.subheader("🌐 Hasil Analisa AI & Rekomendasi Worth It Bet")
-        
-        try:
-            # Menggunakan model standar yang lebih stabil dan ramah kuota
-            model = genai.GenerativeModel('gemini-1.5-flash')
+        with st.spinner("Sedang memindai seluruh laga hari ini dan menyaring 5 pertandingan paling layak pasang..."):
+            raw_matches = fetch_todays_matches(FOOTBALL_KEY)
             
-            all_parlay_summary = []
-            
-            for idx, match in enumerate(matches_list):
-                h = match["home"]
-                a = match["away"]
-                comp = match["competition"]
+            if not raw_matches:
+                st.warning("⚠️ Tidak ada jadwal pertandingan yang tersedia di server untuk hari ini.")
+            else:
+                # Kumpulkan semua daftar tim yang bertanding hari ini
+                all_available_matches = []
+                for m in raw_matches:
+                    all_available_matches.append({
+                        "home": m['homeTeam']['name'],
+                        "away": m['awayTeam']['name'],
+                        "competition": m['competition']['name']
+                    })
                 
-                prompt = f"""
-                Hari ini adalah tanggal {today_date}. Kompetisi: {comp}.
-                Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara mendalam.
+                st.divider()
+                st.subheader("🏆 Proses Penyaringan & Analisa Top 5 Legs")
                 
-                ATURAN:
-                1. Validasi skuad aktif saat ini per tanggal {today_date} (cek bursa transfer & cedera mutakhir).
-                2. Analisis performa terkini, statistik xG, dan head-to-head.
-                3. Berikan kesimpulan pasaran apa yang paling WORTH IT dan aman untuk dipasang (Over/Under atau Asian Handicap) beserta tingkat keyakinannya.
-                
-                Format jawaban dengan rapi menggunakan Markdown. Di bagian paling akhir jawabanmu, tuliskan satu baris khusus berformat: "REKOMENDASI_BET: [Nama Tim / Pilihan Pasaran yang Worth It]" agar bisa dibaca sistem.
-                """
-                
-                with st.spinner(f"Menganalisis laga {h} vs {a}..."):
-                    response = model.generate_content(prompt)
+                try:
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    
+                    # Kirim daftar semua pertandingan ke AI, lalu minta AI memilih 5 terbaik
+                    selection_prompt = f"""
+                    Hari ini adalah tanggal {today_date}. Berikut adalah daftar pertandingan bola hari ini:
+                    {all_available_matches}
+                    
+                    Tugasmu:
+                    Pilih tepat **5 pertandingan (Top 5 Legs)** yang paling "WORTH IT" dan memiliki probabilitas tembus tertinggi untuk dipasang dalam satu slip parlay (hindari laga yang terlalu berisiko atau seimbang ketat).
+                    
+                    Untuk masing-masing dari 5 pertandingan pilihanmu, berikan:
+                    1. Nama Tim Home dan Away serta Kompetisinya.
+                    2. Alasan singkat mengapa laga ini dipilih (xG, tren performa, keamanan).
+                    3. Rekomendasi pasaran spesifik yang paling aman (Contoh: Over 1.5, Double Chance 1X, atau Handicap aman).
+                    
+                    Format jawaban dengan rapi. Di bagian paling akhir, buatkan ringkasan tiket dalam format khusus agar mudah dibaca sistem dengan awalan: "TOP_5_SUMMARY:" diikuti daftar 5 leg tersebut.
+                    """
+                    
+                    response = model.generate_content(selection_prompt)
                     analysis_text = response.text
-                
-                # Ekstrak rekomendasi singkat untuk rangkuman bill parlay
-                bet_rec = "Analisis Selesai"
-                for line in analysis_text.split('\n'):
-                    if "REKOMENDASI_BET:" in line:
-                        bet_rec = line.replace("REKOMENDASI_BET:", "").strip()
-                
-                all_parlay_summary.append({"match": f"{h} vs {a}", "pick": bet_rec})
-                
-                with st.expander(f"📌 Leg {idx+1}: {h} vs {a} ({comp})", expanded=True):
+                    
+                    # Tampilkan hasil analisis lengkap AI
                     st.markdown(analysis_text)
-            
-            # --- BAGIAN KESIMPULAN BILL PARLAY ---
-            st.divider()
-            st.markdown("### 🎫 KESIMPULAN BILL PARLAY SIAP PASANG")
-            st.success(f"✨ Rangkuman kombinasi tiket parlay berdasarkan hasil analisa per tanggal {today_date}:")
-            
-            for p_idx, p_item in enumerate(all_parlay_summary):
-                st.markdown(f"**Leg {p_idx+1}: {p_item['match']}** ➡️ Rekomendasi Bet: `{p_item['pick']}`")
-            
-            st.info("💡 **Tips:** Gabungkan semua pilihan *leg* di atas ke dalam satu slip *parlay* di bursa taruhan pilihanmu dengan bijak!")
-            
-        except Exception as e:
-            st.error(f"Terjadi kesalahan saat memproses data: {e}")
+                    
+                    # --- KESIMPULAN TIKET TOP 5 PARLAY ---
+                    st.divider()
+                    st.markdown("### 🎫 KESIMPULAN TIKET TOP 5 PARLAY HARI INI")
+                    st.success(f"✨ Selesai! Dari total seluruh pertandingan hari ini, sistem telah menyaring 5 laga terbaik per tanggal {today_date}.")
+                    st.info("💡 **Tips:** Salin pilihan pasaran di atas ke bursa taruhanmu. Batasi dan pasang dengan bijak!")
+                    
+                except Exception as e:
+                    st.error(f"Terjadi kesalahan saat memproses data otomatis: {e}")
