@@ -71,9 +71,9 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
                 Format jawaban dengan rapi menggunakan Markdown.
                 """
                 
-                # Menggunakan model standar paling stabil untuk akun baru
+                # Menggunakan model gemini-3.8-flash yang aktif dan kompatibel
                 try:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    model = genai.GenerativeModel('gemini-3.8-flash')
                     response = model.generate_content(selection_prompt)
                     analysis_text = response.text
                     
