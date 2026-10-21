@@ -63,9 +63,9 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
                 st.subheader("🏆 Proses Penyaringan & Analisa Top 5 Legs")
                 
                 try:
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    # Menggunakan model gemini-2.5-flash yang stabil dan aktif
+                    model = genai.GenerativeModel('gemini-2.5-flash')
                     
-                    # Kirim daftar semua pertandingan ke AI, lalu minta AI memilih 5 terbaik
                     selection_prompt = f"""
                     Hari ini adalah tanggal {today_date}. Berikut adalah daftar pertandingan bola hari ini:
                     {all_available_matches}
