@@ -50,7 +50,6 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
             if not raw_matches:
                 st.warning("⚠️ Tidak ada jadwal pertandingan yang tersedia di server untuk hari ini.")
             else:
-                # Kumpulkan semua daftar tim yang bertanding hari ini
                 all_available_matches = []
                 for m in raw_matches:
                     all_available_matches.append({
@@ -62,29 +61,37 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
                 st.divider()
                 st.subheader("🏆 Proses Penyaringan & Analisa Top 5 Legs")
                 
-                try:
-                    # Menggunakan model gemini-2.0-flash yang memiliki alokasi kuota terpisah
-                    model = genai.GenerativeModel('gemini-2.0-flash')
-                    
-                    selection_prompt = f"""
-                    Hari ini adalah tanggal {today_date}. Berikut adalah daftar pertandingan bola hari ini:
-                    {all_available_matches}
-                    
-                    Tugasmu:
-                    Pilih tepat **5 pertandingan (Top 5 Legs)** yang paling "WORTH IT" dan memiliki probabilitas tembus tertinggi untuk dipasang dalam satu slip parlay (hindari laga yang terlalu berisiko atau seimbang ketat).
-                    
-                    Untuk masing-masing dari 5 pertandingan pilihanmu, berikan:
-                    1. Nama Tim Home dan Away serta Kompetisinya.
-                    2. Alasan singkat mengapa laga ini dipilih (xG, tren performa, keamanan).
-                    3. Rekomendasi pasaran spesifik yang paling aman (Contoh: Over 1.5, Double Chance 1X, atau Handicap aman).
-                    
-                    Format jawaban dengan rapi. Di bagian paling akhir, buatkan ringkasan tiket dalam format khusus agar mudah dibaca sistem dengan awalan: "TOP_5_SUMMARY:" diikuti daftar 5 leg tersebut.
-                    """
-                    
-                    response = model.generate_content(selection_prompt)
-                    analysis_text = response.text
-                    
-                    # Tampilkan hasil analisis lengkap AI
+                selection_prompt = f"""
+                Hari ini adalah tanggal {today_date}. Berikut adalah daftar pertandingan bola hari ini:
+                {all_available_matches}
+                
+                Tugasmu:
+                Pilih tepat **5 pertandingan (Top 5 Legs)** yang paling "WORTH IT" dan memiliki probabilitas tembus tertinggi untuk dipasang dalam satu slip parlay (hindari laga yang terlalu berisiko atau seimbang ketat).
+                
+                Untuk masing-masing dari 5 pertandingan pilihanmu, berikan:
+                1. Nama Tim Home dan Away serta Kompetisinya.
+                2. Alasan singkat mengapa laga ini dipilih (xG, tren performa, keamanan).
+                3. Rekomendasi pasaran spesifik yang paling aman (Contoh: Over 1.5, Double Chance 1X, atau Handicap aman).
+                
+                Format jawaban dengan rapi menggunakan Markdown.
+                """
+                
+                # Daftar model cadangan (mencoba model utama yang direkomendasikan sistem terlebih dahulu)
+                models_to_try = ['gemini-3.8-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']
+                success = False
+                analysis_text = ""
+                
+                for model_name in models_to_try:
+                    try:
+                        model = genai.GenerativeModel(model_name)
+                        response = model.generate_content(selection_prompt)
+                        analysis_text = response.text
+                        success = True
+                        break # Berhenti jika salah satu model berhasil merespons
+                    except Exception as e:
+                        continue # Lanjut ke model cadangan berikutnya jika error / kuota habis
+                
+                if success:
                     st.markdown(analysis_text)
                     
                     # --- KESIMPULAN TIKET TOP 5 PARLAY ---
@@ -92,6 +99,5 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
                     st.markdown("### 🎫 KESIMPULAN TIKET TOP 5 PARLAY HARI INI")
                     st.success(f"✨ Selesai! Dari total seluruh pertandingan hari ini, sistem telah menyaring 5 laga terbaik per tanggal {today_date}.")
                     st.info("💡 **Tips:** Salin pilihan pasaran di atas ke bursa taruhanmu. Batasi dan pasang dengan bijak!")
-                    
-                except Exception as e:
-                    st.error(f"Terjadi kesalahan saat memproses data otomatis: {e}")
+                else:
+                    st.error("❌ Semua model AI sedang mencapai batas kuota harian gratis. Silakan buat API Key baru di Google AI Studio atau tunggu reset kuota dalam 24 jam.")
