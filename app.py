@@ -2,10 +2,10 @@ import streamlit as st
 import google.generativeai as genai
 
 # Konfigurasi Halaman
-st.set_page_config(page_title="AI Live Search Parlay Analyzer", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="AI Live Parlay Analyzer", page_icon="⚽", layout="centered")
 
-st.title("⚽ AI Live Search Parlay Analyzer")
-st.markdown("Aplikasi terhubung langsung dengan **Google Search** untuk memastikan data transfer pemain, cedera, dan analisis *up-to-date* setiap hari!")
+st.title("⚽ AI Live Parlay Analyzer")
+st.markdown("Analisis mendalam otomatis berdasarkan data dan berita sepak bola terkini.")
 
 # Validasi & Konfigurasi API Key
 try:
@@ -18,7 +18,7 @@ except Exception:
     api_ready = False
 
 if not api_ready:
-    st.error("⚠️ GEMINI_API_KEY belum terdeteksi di Streamlit Secrets! Masukkan di menu pengaturan Secrets.")
+    st.error("⚠️ GEMINI_API_KEY belum terdeteksi di Streamlit Secrets!")
 
 # Form Input Nama Tim
 num_matches = st.number_input("Jumlah Partai (Leg) dalam 1 Slip Parlay", min_value=1, max_value=6, value=2)
@@ -34,38 +34,37 @@ for i in range(int(num_matches)):
     matches_input.append({"home": home_team, "away": away_team})
     st.markdown("---")
 
-# Tombol Eksekusi Analisa dengan Google Search
-if st.button("🔍 Riset Google Real-Time & Analisa Mendalam", type="primary"):
+# Tombol Eksekusi Analisa
+if st.button("🔍 Jalankan Analisa Mendalam", type="primary"):
     if not api_ready:
         st.error("❌ Konfigurasi API Key belum lengkap.")
     else:
         st.divider()
-        st.subheader("🌐 Hasil Analisa Berbasis Live Google Search")
+        st.subheader("🌐 Hasil Analisa & Rekomendasi Worth It Bet")
         
         try:
-            # Menggunakan model dengan kemampuan Google Search Grounding aktif
-            model = genai.GenerativeModel(
-                model_name='gemini-3.8-flash',
-                tools='google_search_retrieval' # Mengaktifkan pencarian web langsung
-            )
+            # Menggunakan model standar tanpa fungsi tambahan yang memicu kuota berlebih
+            model = genai.GenerativeModel('gemini-3.8-flash')
             
             for idx, match in enumerate(matches_input):
                 h = match["home"]
                 a = match["away"]
                 
                 prompt = f"""
-                Gunakan Google Search untuk mencari berita terbaru hari ini mengenai skuad, bursa transfer, dan kondisi tim terkini.
-                Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara sangat mendalam.
+                Bertindaklah sebagai pakar data analis sepak bola profesional dan bursa taruhan yang sangat akurat dan up-to-date.
+                Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara mendalam.
                 
-                Pastikan:
-                1. Validasi skuad saat ini (pastikan pemain yang sudah pindah klub atau cedera jangka panjang TIDAK dimasukkan sebagai pemain aktif klub lama).
-                2. Cari data statistik, performa terkini, xG, dan berita ruang ganti terbaru dari internet hari ini.
-                3. Berikan kesimpulan pasaran apa yang paling WORTH IT dan aman untuk dipasang (Over/Under, Asian Handicap, dll) beserta alasannya secara akurat.
+                PENTING: Pastikan skuad, status cedera, dan kondisi bursa transfer pemain saat ini valid (misalnya pastikan pemain yang sudah pindah klub tidak lagi dianggap di klub lamanya).
+                
+                Berikan poin-poin berikut:
+                1. Performa terkini, statistik xG, dan head-to-head.
+                2. Kondisi ruang ganti, pemain kunci, dan faktor kelelahan.
+                3. Kesimpulan pasaran apa yang paling WORTH IT dan aman untuk dipasang (Over/Under atau Asian Handicap) beserta alasannya secara spesifik.
                 
                 Format jawaban dengan rapi menggunakan Markdown.
                 """
                 
-                with st.spinner(f"Sedang browsing data terkini di Google untuk laga {h} vs {a}..."):
+                with st.spinner(f"Sedang menganalisis laga {h} vs {a}..."):
                     response = model.generate_content(prompt)
                     analysis_result = response.text
                 
@@ -74,7 +73,7 @@ if st.button("🔍 Riset Google Real-Time & Analisa Mendalam", type="primary"):
             
             st.divider()
             st.markdown("### 🎫 KESIMPULAN BILL PARLAY")
-            st.success("✨ Selesai! Analisa di atas sudah divalidasi langsung melalui pencarian web *real-time* hari ini.")
+            st.success("✨ Selesai! Analisa berhasil digenerate.")
             
         except Exception as e:
-            st.error(f"Terjadi kesalahan saat meriset data: {e}")
+            st.error(f"Terjadi kendala kuota atau koneksi: {e}. Coba tunggu beberapa saat lagi sebelum menekan tombol analisa.")
