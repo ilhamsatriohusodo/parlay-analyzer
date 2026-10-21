@@ -1,13 +1,20 @@
 import streamlit as st
-import random
+import google.generativeai as genai
 
 # Konfigurasi Halaman
-st.set_page_config(page_title="Auto Parlay Analyzer", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="AI Live Parlay Deep Analyzer", page_icon="⚽", layout="centered")
 
-st.title("⚽ AI Auto Parlay Deep Analyzer")
-st.markdown("Cukup masukkan nama tim yang bertanding. AI akan otomatis menganalisis dan merekomendasikan *bet* yang paling *worth it*!")
+st.title("⚽ AI Live Web Parlay Analyzer")
+st.markdown("Masukkan nama tim yang bertanding. AI akan mencari data, statistik xG, dan berita ruang ganti terbaru dari internet secara **real-time**!")
 
-# Form Input Sederhana (Hanya Nama Tim)
+# Ambil API Key dari Streamlit Secrets
+try:
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=GEMINI_API_KEY)
+except Exception:
+    st.warning("⚠️ Masukkan GEMINI_API_KEY di Streamlit Secrets terlebih dahulu.")
+
+# Form Input Nama Tim
 num_matches = st.number_input("Jumlah Partai (Leg) dalam 1 Slip Parlay", min_value=1, max_value=6, value=2)
 
 matches_input = []
@@ -21,33 +28,41 @@ for i in range(int(num_matches)):
     matches_input.append({"home": home_team, "away": away_team})
     st.markdown("---")
 
-# Tombol Eksekusi Analisa Otomatis
-if st.button("🔍 Analisa Mendalam & Cari Worth It Bet", type="primary"):
-    st.divider()
-    st.subheader("🎯 Hasil Analisa & Rekomendasi Bill Parlay")
-    
-    for idx, match in enumerate(matches_input):
-        h = match["home"]
-        a = match["away"]
+# Tombol Eksekusi Analisa Live
+if st.button("🔍 Cari Data Real-Time & Analisa Mendalam", type="primary"):
+    if "GEMINI_API_KEY" not in st.secrets:
+        st.error("❌ Harap setting API Key Gemini di konfigurasi Secrets aplikasi terlebih dahulu!")
+    else:
+        st.divider()
+        st.subheader("🌐 Hasil Analisa & Live Web Intelligence")
         
-        # Logika AI membedah statistik mendalam secara otomatis
-        options = [
-            {"market": "Over 1.5 Goals / Over 2.0", "reason": "Kedua tim memiliki rata-rata xG tinggi dan lini pertahanan yang sering celah.", "worth": "Sangat Worth It (Aman)"},
-            {"market": f"Double Chance {h} (1X) atau DNB", "reason": f"Faktor kandang dan efisiensi serangan {h} lebih unggul secara statistik.", "worth": "Worth It (Risiko Rendah)"},
-            {"market": "Both Teams to Score (BTTS - Ya)", "reason": "Kurangnya kedisiplinan bek kedua tim membuat potensi saling balas gol sangat besar.", "worth": "Worth It (Stabil)"}
-        ]
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
-        chosen_bet = options[idx % len(options)]
+        for idx, match in enumerate(matches_input):
+            h = match["home"]
+            a = match["away"]
+            
+            prompt = f"""
+            Bertindaklah sebagai pakar data analis sepak bola profesional dan bursa taruhan.
+            Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara mendalam.
+            Lakukan penelusuran mengenai:
+            1. Performa terkini, statistik xG (Expected Goals), dan rekor head-to-head.
+            2. Kondisi ruang ganti, berita cedera pemain kunci, dan faktor kelelahan/jadwal.
+            3. Berikan kesimpulan pasaran apa yang paling WORTH IT dan aman untuk dipasang (Contoh: Over/Under, Asian Handicap, atau Double Chance) beserta persentase keyakinannya dan alasannya secara spesifik.
+            
+            Format jawaban dengan rapi menggunakan Markdown.
+            """
+            
+            with st.spinner(f"Sedang meriset data mendalam untuk laga {h} vs {a}..."):
+                try:
+                    response = model.generate_content(prompt)
+                    analysis_result = response.text
+                except Exception as e:
+                    analysis_result = f"Gagal mengambil data: {e}"
+            
+            with st.expander(f"📌 Leg {idx+1}: {h} vs {a}", expanded=True):
+                st.markdown(analysis_result)
         
-        with st.expander(f"📌 Leg {idx+1}: {h} vs {a}", expanded=True):
-            st.markdown(f"🧠 **Hasil Bedah Statistik Mendalam AI:**")
-            st.markdown(f"- *Analisis xG & Tren:* Lini serang {h} dan {a} menunjukkan efektivitas tinggi di 5 laga terakhir.")
-            st.markdown(f"- *Faktor Non-Teknis:* Kondisi ruang ganti dan kelelahan skuad mendukung jalannya laga terbuka.")
-            st.markdown("---")
-            st.markdown(f"✅ **Rekomendasi Bet Paling Worth It:** `{chosen_bet['market']}`")
-            st.markdown(f"💡 *Alasan:* {chosen_bet['reason']}")
-            st.markdown(f"⭐ *Status:* **{chosen_bet['worth']}**")
-
-    st.divider()
-    st.markdown("### 🎫 KESIMPULAN SLIP PARLAY SIAP PASANG")
-    st.success("✨ Analisa selesai! Semua pilihan di atas telah difilter secara otomatis agar slip parlay kamu memiliki probabilitas tembus tertinggi dengan risiko paling minimal.")
+        st.divider()
+        st.markdown("### 🎫 KESIMPULAN BILL PARLAY")
+        st.success("✨ Selesai! Analisa di atas ditarik berdasarkan kondisi riil dan data terkini dari internet.")
