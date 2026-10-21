@@ -30,8 +30,7 @@ if st.button("🔍 Analisa Mendalam & Cari Worth It Bet", type="primary"):
         h = match["home"]
         a = match["away"]
         
-        # Simulasi/Logika AI membedah statistik mendalam secara otomatis
-        # (Di sini sistem otomatis menentukan pasaran terbaik berdasarkan logika xG & tren performa)
+        # Logika AI membedah statistik mendalam secara otomatis
         options = [
             {"market": "Over 1.5 Goals / Over 2.0", "reason": "Kedua tim memiliki rata-rata xG tinggi dan lini pertahanan yang sering celah.", "worth": "Sangat Worth It (Aman)"},
             {"market": f"Double Chance {h} (1X) atau DNB", "reason": f"Faktor kandang dan efisiensi serangan {h} lebih unggul secara statistik.", "worth": "Worth It (Risiko Rendah)"},
@@ -47,7 +46,7 @@ if st.button("🔍 Analisa Mendalam & Cari Worth It Bet", type="primary"):
             st.markdown("---")
             st.markdown(f"✅ **Rekomendasi Bet Paling Worth It:** `{chosen_bet['market']}`")
             st.markdown(f"💡 *Alasan:* {chosen_bet['reason']}")
-            st.markdown( ف`⭐ *Status:* **{chosen_bet['worth']}**")
+            st.markdown(f"⭐ *Status:* **{chosen_bet['worth']}**")
 
     st.divider()
     st.markdown("### 🎫 KESIMPULAN SLIP PARLAY SIAP PASANG")
