@@ -85,7 +85,8 @@ if st.button("🚀 Jalankan Analisa Mendalam Berbasis Live Data", type="primary"
         st.subheader("🌐 Hasil Analisa AI & Rekomendasi Worth It Bet")
         
         try:
-            model = genai.GenerativeModel('gemini-3.8-flash')
+            # Menggunakan model standar yang lebih stabil dan ramah kuota
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
             all_parlay_summary = []
             
@@ -96,7 +97,7 @@ if st.button("🚀 Jalankan Analisa Mendalam Berbasis Live Data", type="primary"
                 
                 prompt = f"""
                 Hari ini adalah tanggal {today_date}. Kompetisi: {comp}.
-                Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara sangat mendalam.
+                Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara mendalam.
                 
                 ATURAN:
                 1. Validasi skuad aktif saat ini per tanggal {today_date} (cek bursa transfer & cedera mutakhir).
