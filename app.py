@@ -7,19 +7,26 @@ from datetime import datetime
 st.set_page_config(page_title="Auto-Run Top 5 Parlay", page_icon="⚽", layout="centered")
 
 st.title("⚽ AI Top 5 Auto Parlay Builder")
-st.markdown("Aplikasi pintar yang otomatis memindai seluruh jadwal hari ini dan langsung menyusun **Top 5 Legs** terbaik begitu halaman dibuka!")
+st.markdown("Aplikasi pintar dengan sistem **Multi-Key Cadangan Otomatis** yang memindai jadwal hari ini dan menyusun **Top 5 Legs** terbaik begitu halaman dibuka!")
 
-# 1. Konfigurasi API Keys dari Streamlit Secrets
+# 1. Konfigurasi Multi-API Keys dari Streamlit Secrets
 try:
-    GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
+    # Mendukung banyak key sekaligus (pisahkan dengan koma atau buat beberapa key)
+    api_keys = []
+    if "GEMINI_API_KEY" in st.secrets:
+        api_keys.append(st.secrets["GEMINI_API_KEY"])
+    if "GEMINI_API_KEY_2" in st.secrets:
+        api_keys.append(st.secrets["GEMINI_API_KEY_2"])
+    if "GEMINI_API_KEY_3" in st.secrets:
+        api_keys.append(st.secrets["GEMINI_API_KEY_3"])
+        
     FOOTBALL_KEY = st.secrets["FOOTBALL_DATA_API_KEY"]
-    genai.configure(api_key=GEMINI_KEY)
-    api_ready = True
+    api_ready = len(api_keys) > 0 and bool(FOOTBALL_KEY)
 except Exception:
     api_ready = False
 
 if not api_ready:
-    st.error("⚠️ GEMINI_API_KEY atau FOOTBALL_DATA_API_KEY belum lengkap diatur di Streamlit Secrets!")
+    st.error("⚠️ Konfigurasi API Key belum lengkap diatur di Streamlit Secrets!")
 
 today_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -41,7 +48,7 @@ def fetch_todays_matches(api_key):
 st.markdown(f"📅 **Jadwal Hari Ini:** `{today_date}`")
 st.divider()
 
-# 3. Proses Langsung Dijalankan Otomatis Saat Halaman Diakses
+# 3. Proses Auto-Run dengan Sistem Cadangan API Key Otomatis
 if api_ready:
     st.subheader("🏆 Rekomendasi Top 5 Parlay Hari Ini (Auto-Generated)")
     
@@ -69,12 +76,23 @@ if api_ready:
             Format jawaban dengan rapi menggunakan Markdown.
             """
             
-            try:
-                model = genai.GenerativeModel('gemini-3.8-flash')
-                response = model.generate_content(selection_prompt)
-                analysis_text = response.text
-                
-                # Tampilkan hasil analisis
+            # --- SISTEM PERCOBAAN OTOMATIS (FALLBACK KEY) ---
+            success = False
+            analysis_text = ""
+            
+            for idx, current_key in enumerate(api_keys):
+                try:
+                    genai.configure(api_key=current_key)
+                    model = genai.GenerativeModel('gemini-3.8-flash')
+                    response = model.generate_content(selection_prompt)
+                    analysis_text = response.text
+                    success = True
+                    break # Berhasil, keluar dari perulangan key
+                except Exception as e:
+                    # Jika key ke-1 gagal/limit, otomatis lanjut mencoba key berikutnya
+                    continue
+            
+            if success:
                 st.markdown(analysis_text)
                 
                 # --- KESIMPULAN TIKET TOP 5 PARLAY ---
@@ -82,8 +100,7 @@ if api_ready:
                 st.markdown("### 🎫 KESIMPULAN TIKET TOP 5 PARLAY HARI INI")
                 st.success(f"✨ Selesai! Dari total seluruh pertandingan hari ini, sistem telah menyaring 5 laga terbaik per tanggal {today_date}.")
                 st.info("💡 **Tips:** Salin pilihan pasaran di atas ke bursa taruhanmu. Batasi dan pasang dengan bijak!")
-                
-            except Exception as e:
-                st.error(f"Terjadi kesalahan saat memproses data: {e}")
+            else:
+                st.error("❌ Semua API Key cadangan yang kamu masukkan telah mencapai batas kuota harian. Silakan tambahkan Key baru.")
 else:
     st.error("❌ Konfigurasi API belum lengkap di Secrets.")
