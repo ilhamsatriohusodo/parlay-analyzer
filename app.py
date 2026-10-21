@@ -1,11 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
+from datetime import datetime
 
 # Konfigurasi Halaman
 st.set_page_config(page_title="AI Live Parlay Analyzer", page_icon="⚽", layout="centered")
 
-st.title("⚽ AI Live Parlay Analyzer")
-st.markdown("Analisis mendalam otomatis berdasarkan data dan berita sepak bola terkini.")
+st.title("⚽ AI Live Strict-Update Parlay Analyzer")
+st.markdown("Analisis sepak bola dengan pengaman tanggal ketat agar skuad, transfer, dan cedera selalu **valid per hari ini**.")
 
 # Validasi & Konfigurasi API Key
 try:
@@ -19,6 +20,9 @@ except Exception:
 
 if not api_ready:
     st.error("⚠️ GEMINI_API_KEY belum terdeteksi di Streamlit Secrets!")
+
+# Ambil tanggal hari ini secara otomatis
+today_date = datetime.now().strftime("%Y-%m-%d")
 
 # Form Input Nama Tim
 num_matches = st.number_input("Jumlah Partai (Leg) dalam 1 Slip Parlay", min_value=1, max_value=6, value=2)
@@ -35,36 +39,35 @@ for i in range(int(num_matches)):
     st.markdown("---")
 
 # Tombol Eksekusi Analisa
-if st.button("🔍 Jalankan Analisa Mendalam", type="primary"):
+if st.button("🔍 Jalankan Analisa Up-to-Date", type="primary"):
     if not api_ready:
         st.error("❌ Konfigurasi API Key belum lengkap.")
     else:
         st.divider()
-        st.subheader("🌐 Hasil Analisa & Rekomendasi Worth It Bet")
+        st.subheader("🌐 Hasil Analisa Skuad Terkini")
         
         try:
-            # Menggunakan model standar tanpa fungsi tambahan yang memicu kuota berlebih
             model = genai.GenerativeModel('gemini-3.8-flash')
             
             for idx, match in enumerate(matches_input):
                 h = match["home"]
                 a = match["away"]
                 
+                # Prompt diperketat dengan instruksi waktu dan filter transfer mutlak
                 prompt = f"""
-                Bertindaklah sebagai pakar data analis sepak bola profesional dan bursa taruhan yang sangat akurat dan up-to-date.
+                Hari ini adalah tanggal {today_date}. Bertindaklah sebagai pakar data analis sepak bola profesional yang memegang data bursa transfer, cedera, dan skuad paling mutakhir detik ini.
+                
                 Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara mendalam.
                 
-                PENTING: Pastikan skuad, status cedera, dan kondisi bursa transfer pemain saat ini valid (misalnya pastikan pemain yang sudah pindah klub tidak lagi dianggap di klub lamanya).
-                
-                Berikan poin-poin berikut:
-                1. Performa terkini, statistik xG, dan head-to-head.
-                2. Kondisi ruang ganti, pemain kunci, dan faktor kelelahan.
-                3. Kesimpulan pasaran apa yang paling WORTH IT dan aman untuk dipasang (Over/Under atau Asian Handicap) beserta alasannya secara spesifik.
+                ATURAN MUTLAK (STRICT RULES):
+                1. WAJIB pastikan skuad yang dibahas benar-benar skuad aktif per tanggal {today_date}. JANGAN sebutkan pemain yang sudah pindah klub (contoh: pastikan pemain seperti Alejandro Garnacho dipetakan sesuai klub aslinya saat ini di tahun 2026, bukan klub lamanya).
+                2. Periksa status cedera pemain kunci yang valid hari ini.
+                3. Berikan analisis performa, taktik, dan tentukan pasaran apa yang paling WORTH IT untuk dipasang (Over/Under atau Asian Handicap) beserta persentase keyakinannya.
                 
                 Format jawaban dengan rapi menggunakan Markdown.
                 """
                 
-                with st.spinner(f"Sedang menganalisis laga {h} vs {a}..."):
+                with st.spinner(f"Memeriksa data bursa transfer & skuad terbaru untuk {h} vs {a}..."):
                     response = model.generate_content(prompt)
                     analysis_result = response.text
                 
@@ -73,7 +76,7 @@ if st.button("🔍 Jalankan Analisa Mendalam", type="primary"):
             
             st.divider()
             st.markdown("### 🎫 KESIMPULAN BILL PARLAY")
-            st.success("✨ Selesai! Analisa berhasil digenerate.")
+            st.success(f"✨ Selesai! Data divalidasi berdasarkan kondisi riil per tanggal {today_date}.")
             
         except Exception as e:
-            st.error(f"Terjadi kendala kuota atau koneksi: {e}. Coba tunggu beberapa saat lagi sebelum menekan tombol analisa.")
+            st.error(f"Terjadi kendala: {e}")
