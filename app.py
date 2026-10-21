@@ -1,12 +1,13 @@
 import streamlit as st
 import google.generativeai as genai
+from PIL import Image
 from datetime import datetime
 
 # Konfigurasi Halaman
-st.set_page_config(page_title="AI Live Parlay Analyzer", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="AI Vision Parlay Analyzer", page_icon="⚽", layout="centered")
 
-st.title("⚽ AI Live Strict-Update Parlay Analyzer")
-st.markdown("Analisis sepak bola dengan pengaman tanggal ketat agar skuad, transfer, dan cedera selalu **valid per hari ini**.")
+st.title("⚽ AI Vision & Live Parlay Analyzer")
+st.markdown("Cukup **upload screenshot jadwal pertandingan** (dari Flashscore/Sofascore), dan AI akan otomatis membaca serta menganalisisnya secara *real-time*!")
 
 # Validasi & Konfigurasi API Key
 try:
@@ -19,64 +20,60 @@ except Exception:
     api_ready = False
 
 if not api_ready:
-    st.error("⚠️ GEMINI_API_KEY belum terdeteksi di Streamlit Secrets!")
+    st.error("⚠️ GEMINI_API_KEY belum terdeteksi di Streamlit Secrets! Masukkan di menu pengaturan Secrets.")
 
 # Ambil tanggal hari ini secara otomatis
 today_date = datetime.now().strftime("%Y-%m-%d")
 
-# Form Input Nama Tim
-num_matches = st.number_input("Jumlah Partai (Leg) dalam 1 Slip Parlay", min_value=1, max_value=6, value=2)
+# Upload Screenshot Jadwal
+st.markdown("### 📷 Upload Screenshot Jadwal Pertandingan")
+st.info("💡 Tips: Screenshot jadwal atau pasaran bola dari HP kamu (bisa berisi 1, 2, atau beberapa pertandingan sekaligus).")
 
-matches_input = []
-st.markdown("---")
-for i in range(int(num_matches)):
-    st.markdown(f"**Partai ke-{i+1}**")
-    col1, col2 = st.columns(2)
-    home_team = col1.text_input(f"Tim Home {i+1}", f"Tim Home {i+1}", key=f"home_{i}")
-    away_team = col2.text_input(f"Tim Away {i+1}", f"Tim Away {i+1}", key=f"away_{i}")
+uploaded_file = st.file_uploader("Pilih file gambar jadwal (PNG, JPG, JPEG)", type=["png", "jpg", "jpeg"])
+
+if uploaded_file is not None:
+    # Tampilkan gambar yang diupload
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Screenshot Jadwal Berhasil Diunggah", use_container_width=True)
     
-    matches_input.append({"home": home_team, "away": away_team})
-    st.markdown("---")
-
-# Tombol Eksekusi Analisa
-if st.button("🔍 Jalankan Analisa Up-to-Date", type="primary"):
-    if not api_ready:
-        st.error("❌ Konfigurasi API Key belum lengkap.")
-    else:
-        st.divider()
-        st.subheader("🌐 Hasil Analisa Skuad Terkini")
-        
-        try:
-            model = genai.GenerativeModel('gemini-3.8-flash')
+    # Tombol Eksekusi Analisa Berdasarkan Gambar
+    if st.button("🚀 Baca Gambar & Jalankan Analisa Mendalam", type="primary"):
+        if not api_ready:
+            st.error("❌ Konfigurasi API Key belum lengkap.")
+        else:
+            st.divider()
+            st.subheader("🌐 Hasil Analisa AI Berdasarkan Screenshot")
             
-            for idx, match in enumerate(matches_input):
-                h = match["home"]
-                a = match["away"]
+            try:
+                # Menggunakan model Gemini multimodal yang bisa membaca gambar dan teks
+                model = genai.GenerativeModel('gemini-3.8-flash')
                 
-                # Prompt diperketat dengan instruksi waktu dan filter transfer mutlak
                 prompt = f"""
-                Hari ini adalah tanggal {today_date}. Bertindaklah sebagai pakar data analis sepak bola profesional yang memegang data bursa transfer, cedera, dan skuad paling mutakhir detik ini.
+                Hari ini adalah tanggal {today_date}. Bertindaklah sebagai pakar data analis sepak bola profesional dan bursa taruhan.
+                Perhatikan gambar jadwal pertandingan yang diunggah ini.
                 
-                Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara mendalam.
+                Instruksi tugas:
+                1. Identifikasi dan ekstrak semua pertandingan (tim Home dan Tim Away) yang ada di dalam gambar tersebut.
+                2. Untuk setiap pertandingan yang ditemukan, lakukan analisis mendalam per tanggal {today_date}:
+                   - Validasi skuad aktif saat ini (pastikan pemain yang sudah pindah klub tidak salah disebut).
+                   - Performa terkini, statistik xG, dan head-to-head.
+                   - Kondisi ruang ganti, pemain cedera, dan faktor kelelahan.
+                   - Berikan kesimpulan pasaran apa yang paling WORTH IT dan aman untuk dipasang (Over/Under atau Asian Handicap) beserta persentase keyakinannya.
                 
-                ATURAN MUTLAK (STRICT RULES):
-                1. WAJIB pastikan skuad yang dibahas benar-benar skuad aktif per tanggal {today_date}. JANGAN sebutkan pemain yang sudah pindah klub (contoh: pastikan pemain seperti Alejandro Garnacho dipetakan sesuai klub aslinya saat ini di tahun 2026, bukan klub lamanya).
-                2. Periksa status cedera pemain kunci yang valid hari ini.
-                3. Berikan analisis performa, taktik, dan tentukan pasaran apa yang paling WORTH IT untuk dipasang (Over/Under atau Asian Handicap) beserta persentase keyakinannya.
-                
-                Format jawaban dengan rapi menggunakan Markdown.
+                Format jawaban per pertandingan dengan rapi menggunakan Markdown dan Expander (pisahkan setiap laga).
                 """
                 
-                with st.spinner(f"Memeriksa data bursa transfer & skuad terbaru untuk {h} vs {a}..."):
-                    response = model.generate_content(prompt)
+                with st.spinner("AI sedang membaca gambar dan meriset data pertandingan secara real-time..."):
+                    # Kirim gambar dan teks prompt secara bersamaan ke AI
+                    response = model.generate_content([image, prompt])
                     analysis_result = response.text
                 
-                with st.expander(f"📌 Leg {idx+1}: {h} vs {a}", expanded=True):
-                    st.markdown(analysis_result)
-            
-            st.divider()
-            st.markdown("### 🎫 KESIMPULAN BILL PARLAY")
-            st.success(f"✨ Selesai! Data divalidasi berdasarkan kondisi riil per tanggal {today_date}.")
-            
-        except Exception as e:
-            st.error(f"Terjadi kendala: {e}")
+                # Tampilkan hasil analisis
+                st.markdown(analysis_result)
+                
+                st.divider()
+                st.markdown("### 🎫 KESIMPULAN BILL PARLAY")
+                st.success(f"✨ Selesai! Analisa ditarik berdasarkan jadwal di gambar dan divalidasi per tanggal {today_date}.")
+                
+            except Exception as e:
+                st.error(f"Terjadi kesalahan saat memproses gambar dengan AI: {e}")
