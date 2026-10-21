@@ -66,30 +66,25 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
                 {all_available_matches}
                 
                 Tugasmu:
-                Pilih tepat **5 pertandingan (Top 5 Legs)** yang paling "WORTH IT" dan memiliki probabilitas tembus tertinggi untuk dipasang dalam satu slip parlay (hindari laga yang terlalu berisiko atau seimbang ketat).
-                
-                Untuk masing-masing dari 5 pertandingan pilihanmu, berikan:
-                1. Nama Tim Home dan Away serta Kompetisinya.
-                2. Alasan singkat mengapa laga ini dipilih (xG, tren performa, keamanan).
-                3. Rekomendasi pasaran spesifik yang paling aman (Contoh: Over 1.5, Double Chance 1X, atau Handicap aman).
-                
+                Pilih tepat **5 pertandingan (Top 5 Legs)** yang paling "WORTH IT" dan memiliki probabilitas tembus tertinggi untuk dipasang dalam satu slip parlay.
+                Berikan rekomendasi pasaran spesifik (Over/Under atau Handicap) beserta alasannya.
                 Format jawaban dengan rapi menggunakan Markdown.
                 """
                 
-                # Daftar model cadangan (mencoba model utama yang direkomendasikan sistem terlebih dahulu)
-                models_to_try = ['gemini-3.8-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']
+                # Menggunakan model standar paling dasar yang memiliki jatah kuota lebih longgar
+                fallback_models = ['gemini-1.5-flash', 'gemini-1.5-pro']
                 success = False
                 analysis_text = ""
                 
-                for model_name in models_to_try:
+                for m_name in fallback_models:
                     try:
-                        model = genai.GenerativeModel(model_name)
+                        model = genai.GenerativeModel(m_name)
                         response = model.generate_content(selection_prompt)
                         analysis_text = response.text
                         success = True
-                        break # Berhenti jika salah satu model berhasil merespons
-                    except Exception as e:
-                        continue # Lanjut ke model cadangan berikutnya jika error / kuota habis
+                        break
+                    except Exception:
+                        continue
                 
                 if success:
                     st.markdown(analysis_text)
@@ -100,4 +95,4 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
                     st.success(f"✨ Selesai! Dari total seluruh pertandingan hari ini, sistem telah menyaring 5 laga terbaik per tanggal {today_date}.")
                     st.info("💡 **Tips:** Salin pilihan pasaran di atas ke bursa taruhanmu. Batasi dan pasang dengan bijak!")
                 else:
-                    st.error("❌ Semua model AI sedang mencapai batas kuota harian gratis. Silakan buat API Key baru di Google AI Studio atau tunggu reset kuota dalam 24 jam.")
+                    st.error("❌ Permintaan ditolak karena batasan kuota harian API Key tercapai. Disarankan membuat API Key baru di project Google AI Studio yang berbeda.")
