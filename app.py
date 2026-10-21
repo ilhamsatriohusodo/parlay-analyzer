@@ -2,12 +2,12 @@ import streamlit as st
 import google.generativeai as genai
 
 # Konfigurasi Halaman
-st.set_page_config(page_title="AI Live Parlay Deep Analyzer", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="AI Live Search Parlay Analyzer", page_icon="⚽", layout="centered")
 
-st.title("⚽ AI Live Web Parlay Analyzer")
-st.markdown("Masukkan nama tim yang bertanding. AI akan meriset data, statistik xG, dan berita ruang ganti terbaru dari internet secara **real-time**!")
+st.title("⚽ AI Live Search Parlay Analyzer")
+st.markdown("Aplikasi terhubung langsung dengan **Google Search** untuk memastikan data transfer pemain, cedera, dan analisis *up-to-date* setiap hari!")
 
-# Validasi & Konfigurasi API Key dari Streamlit Secrets
+# Validasi & Konfigurasi API Key
 try:
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -18,7 +18,7 @@ except Exception:
     api_ready = False
 
 if not api_ready:
-    st.error("⚠️ GEMINI_API_KEY belum terdeteksi di Streamlit Secrets! Harap masukkan API Key kamu di menu pengaturan Secrets (kanan bawah).")
+    st.error("⚠️ GEMINI_API_KEY belum terdeteksi di Streamlit Secrets! Masukkan di menu pengaturan Secrets.")
 
 # Form Input Nama Tim
 num_matches = st.number_input("Jumlah Partai (Leg) dalam 1 Slip Parlay", min_value=1, max_value=6, value=2)
@@ -34,34 +34,38 @@ for i in range(int(num_matches)):
     matches_input.append({"home": home_team, "away": away_team})
     st.markdown("---")
 
-# Tombol Eksekusi Analisa Live
-if st.button("🔍 Cari Data Real-Time & Analisa Mendalam", type="primary"):
+# Tombol Eksekusi Analisa dengan Google Search
+if st.button("🔍 Riset Google Real-Time & Analisa Mendalam", type="primary"):
     if not api_ready:
-        st.error("❌ Tidak dapat melakukan analisis karena API Key belum dikonfigurasi dengan benar.")
+        st.error("❌ Konfigurasi API Key belum lengkap.")
     else:
         st.divider()
-        st.subheader("🌐 Hasil Analisa & Live Web Intelligence")
+        st.subheader("🌐 Hasil Analisa Berbasis Live Google Search")
         
         try:
-            # Menggunakan model Gemini versi terbaru yang stabil
-            model = genai.GenerativeModel('gemini-3.8-flash')
+            # Menggunakan model dengan kemampuan Google Search Grounding aktif
+            model = genai.GenerativeModel(
+                model_name='gemini-3.8-flash',
+                tools='google_search_retrieval' # Mengaktifkan pencarian web langsung
+            )
             
             for idx, match in enumerate(matches_input):
                 h = match["home"]
                 a = match["away"]
                 
                 prompt = f"""
-                Bertindaklah sebagai pakar data analis sepak bola profesional dan bursa taruhan.
-                Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara mendalam.
-                Lakukan penelusuran mengenai:
-                1. Performa terkini, statistik xG (Expected Goals), dan rekor head-to-head.
-                2. Kondisi ruang ganti, berita cedera pemain kunci, dan faktor kelelahan/jadwal.
-                3. Berikan kesimpulan pasaran apa yang paling WORTH IT dan aman untuk dipasang (Contoh: Over/Under, Asian Handicap, atau Double Chance) beserta persentase keyakinannya dan alasannya secara spesifik.
+                Gunakan Google Search untuk mencari berita terbaru hari ini mengenai skuad, bursa transfer, dan kondisi tim terkini.
+                Analisis pertandingan antara {h} (Kandang) melawan {a} (Tandang) secara sangat mendalam.
+                
+                Pastikan:
+                1. Validasi skuad saat ini (pastikan pemain yang sudah pindah klub atau cedera jangka panjang TIDAK dimasukkan sebagai pemain aktif klub lama).
+                2. Cari data statistik, performa terkini, xG, dan berita ruang ganti terbaru dari internet hari ini.
+                3. Berikan kesimpulan pasaran apa yang paling WORTH IT dan aman untuk dipasang (Over/Under, Asian Handicap, dll) beserta alasannya secara akurat.
                 
                 Format jawaban dengan rapi menggunakan Markdown.
                 """
                 
-                with st.spinner(f"Sedang meriset data mendalam untuk laga {h} vs {a}..."):
+                with st.spinner(f"Sedang browsing data terkini di Google untuk laga {h} vs {a}..."):
                     response = model.generate_content(prompt)
                     analysis_result = response.text
                 
@@ -70,7 +74,7 @@ if st.button("🔍 Cari Data Real-Time & Analisa Mendalam", type="primary"):
             
             st.divider()
             st.markdown("### 🎫 KESIMPULAN BILL PARLAY")
-            st.success("✨ Selesai! Analisa di atas ditarik berdasarkan kondisi riil dan data terkini dari internet.")
+            st.success("✨ Selesai! Analisa di atas sudah divalidasi langsung melalui pencarian web *real-time* hari ini.")
             
         except Exception as e:
-            st.error(f"Terjadi kesalahan saat memproses data dengan AI: {e}")
+            st.error(f"Terjadi kesalahan saat meriset data: {e}")
