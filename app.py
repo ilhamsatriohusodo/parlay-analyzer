@@ -71,22 +71,12 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
                 Format jawaban dengan rapi menggunakan Markdown.
                 """
                 
-                # Menggunakan model standar paling dasar yang memiliki jatah kuota lebih longgar
-                fallback_models = ['gemini-1.5-flash', 'gemini-1.5-pro']
-                success = False
-                analysis_text = ""
-                
-                for m_name in fallback_models:
-                    try:
-                        model = genai.GenerativeModel(m_name)
-                        response = model.generate_content(selection_prompt)
-                        analysis_text = response.text
-                        success = True
-                        break
-                    except Exception:
-                        continue
-                
-                if success:
+                # Menggunakan model standar paling stabil untuk akun baru
+                try:
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = model.generate_content(selection_prompt)
+                    analysis_text = response.text
+                    
                     st.markdown(analysis_text)
                     
                     # --- KESIMPULAN TIKET TOP 5 PARLAY ---
@@ -94,5 +84,6 @@ if st.button("🚀 Pilih & Analisa Top 5 Matches untuk Parlay", type="primary"):
                     st.markdown("### 🎫 KESIMPULAN TIKET TOP 5 PARLAY HARI INI")
                     st.success(f"✨ Selesai! Dari total seluruh pertandingan hari ini, sistem telah menyaring 5 laga terbaik per tanggal {today_date}.")
                     st.info("💡 **Tips:** Salin pilihan pasaran di atas ke bursa taruhanmu. Batasi dan pasang dengan bijak!")
-                else:
-                    st.error("❌ Permintaan ditolak karena batasan kuota harian API Key tercapai. Disarankan membuat API Key baru di project Google AI Studio yang berbeda.")
+                    
+                except Exception as e:
+                    st.error(f"Terjadi kesalahan saat memproses data: {e}")
