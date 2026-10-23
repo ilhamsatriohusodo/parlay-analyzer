@@ -1,17 +1,16 @@
 import streamlit as st
 import google.generativeai as genai
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Konfigurasi Halaman
-st.set_page_config(page_title="Auto-Run Top 5 Parlay", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Auto-Run Top 10 Parlay", page_icon="⚽", layout="centered")
 
-st.title("⚽ AI Top 5 Auto Parlay Builder")
-st.markdown("Aplikasi pintar dengan sistem **Multi-Key Cadangan Otomatis** yang memindai jadwal hari ini dan menyusun **Top 5 Legs** terbaik begitu halaman dibuka!")
+st.title("⚽ AI Top 10 Auto Parlay Builder (2 Hari Kedepan)")
+st.markdown("Aplikasi pintar dengan sistem **Multi-Key Cadangan Otomatis** yang memindai jadwal pertandingan hari ini hingga 2 hari ke depan, lalu menyusun **Top 10 Legs** terbaik begitu halaman dibuka!")
 
-# 1. Konfigurasi Multi-API Keys dari Streamlit Secrets
+# 1. Konfigurasi 3 API Keys Cadangan dari Streamlit Secrets
 try:
-    # Mendukung banyak key sekaligus (pisahkan dengan koma atau buat beberapa key)
     api_keys = []
     if "GEMINI_API_KEY" in st.secrets:
         api_keys.append(st.secrets["GEMINI_API_KEY"])
@@ -28,12 +27,15 @@ except Exception:
 if not api_ready:
     st.error("⚠️ Konfigurasi API Key belum lengkap diatur di Streamlit Secrets!")
 
-today_date = datetime.now().strftime("%Y-%m-%d")
+# Rentang Waktu: Hari Ini sampai 2 Hari Kedepan
+today = datetime.now()
+date_from = today.strftime("%Y-%m-%d")
+date_to = (today + timedelta(days=2)).strftime("%Y-%m-%d")
 
-# 2. Fungsi Mengambil Otomatis Jadwal Pertandingan Hari Ini
+# 2. Fungsi Mengambil Jadwal Pertandingan (Rentang 3 Hari: Hari Ini + 2 Hari Kedepan)
 @st.cache_data(ttl=600)
-def fetch_todays_matches(api_key):
-    url = "https://api.football-data.org/v4/matches"
+def fetch_matches_range(api_key, d_from, d_to):
+    url = f"https://api.football-data.org/v4/matches?dateFrom={d_from}&dateTo={d_to}"
     headers = {"X-Auth-Token": api_key}
     try:
         response = requests.get(url, headers=headers)
@@ -45,62 +47,64 @@ def fetch_todays_matches(api_key):
     except Exception:
         return []
 
-st.markdown(f"📅 **Jadwal Hari Ini:** `{today_date}`")
+st.markdown(f"📅 **Rentang Jadwal:** `{date_from}` s/d `{date_to}`")
 st.divider()
 
-# 3. Proses Auto-Run dengan Sistem Cadangan API Key Otomatis
+# 3. Proses Auto-Run dengan Sistem Cadangan 3 API Key Otomatis
 if api_ready:
-    st.subheader("🏆 Rekomendasi Top 5 Parlay Hari Ini (Auto-Generated)")
+    st.subheader("🏆 Rekomendasi Top 10 Parlay (2 Hari Kedepan)")
     
-    with st.spinner("Sedang memindai seluruh jadwal bola hari ini dan menyaring 5 pertandingan terbaik..."):
-        raw_matches = fetch_todays_matches(FOOTBALL_KEY)
+    with st.spinner("Sedang memindai seluruh jadwal bola untuk 2 hari ke depan dan menyaring 10 pertandingan terbaik..."):
+        raw_matches = fetch_matches_range(FOOTBALL_KEY, date_from, date_to)
         
         if not raw_matches:
-            st.warning("⚠️ Tidak ada jadwal pertandingan yang tersedia di server untuk hari ini.")
+            st.warning("⚠️ Tidak ada jadwal pertandingan yang tersedia di server untuk rentang tanggal tersebut.")
         else:
             all_available_matches = []
             for m in raw_matches:
+                match_date = m['utcDate'][:10] # Ambil tanggal pertandingannya
                 all_available_matches.append({
+                    "date": match_date,
                     "home": m['homeTeam']['name'],
                     "away": m['awayTeam']['name'],
                     "competition": m['competition']['name']
                 })
             
             selection_prompt = f"""
-            Hari ini adalah tanggal {today_date}. Berikut adalah daftar pertandingan bola hari ini:
+            Berikut adalah daftar pertandingan bola dari tanggal {date_from} sampai {date_to}:
             {all_available_matches}
             
             Tugasmu:
-            Pilih tepat **5 pertandingan (Top 5 Legs)** yang paling "WORTH IT" dan memiliki probabilitas tembus tertinggi untuk dipasang dalam satu slip parlay.
+            Pilih tepat **10 pertandingan (Top 10 Legs)** yang paling "WORTH IT" dan memiliki probabilitas tembus tertinggi untuk dipasang dalam satu slip parlay besar.
+            Sertakan informasi tanggal pertandingannya untuk setiap leg.
             Berikan rekomendasi pasaran spesifik (Over/Under atau Handicap) beserta alasannya.
             Format jawaban dengan rapi menggunakan Markdown.
             """
             
-            # --- SISTEM PERCOBAAN OTOMATIS (FALLBACK KEY) ---
+            # --- SISTEM PERCOBAAN OTOMATIS BERUNTUN (3 KEY CADANGAN) ---
             success = False
             analysis_text = ""
             
-            for idx, current_key in enumerate(api_keys):
+            for current_key in api_keys:
                 try:
                     genai.configure(api_key=current_key)
                     model = genai.GenerativeModel('gemini-3.8-flash')
                     response = model.generate_content(selection_prompt)
                     analysis_text = response.text
                     success = True
-                    break # Berhasil, keluar dari perulangan key
-                except Exception as e:
-                    # Jika key ke-1 gagal/limit, otomatis lanjut mencoba key berikutnya
-                    continue
+                    break # Jika berhasil, langsung keluar dari loop
+                except Exception:
+                    continue # Jika key gagal/limit, otomatis lanjut mencoba key berikutnya
             
             if success:
                 st.markdown(analysis_text)
                 
-                # --- KESIMPULAN TIKET TOP 5 PARLAY ---
+                # --- KESIMPULAN TIKET TOP 10 PARLAY ---
                 st.divider()
-                st.markdown("### 🎫 KESIMPULAN TIKET TOP 5 PARLAY HARI INI")
-                st.success(f"✨ Selesai! Dari total seluruh pertandingan hari ini, sistem telah menyaring 5 laga terbaik per tanggal {today_date}.")
+                st.markdown("### 🎫 KESIMPULAN TIKET TOP 10 PARLAY")
+                st.success(f"✨ Selesai! Sistem telah menyaring 10 laga terbaik untuk periode {date_from} s/d {date_to}.")
                 st.info("💡 **Tips:** Salin pilihan pasaran di atas ke bursa taruhanmu. Batasi dan pasang dengan bijak!")
             else:
-                st.error("❌ Semua API Key cadangan yang kamu masukkan telah mencapai batas kuota harian. Silakan tambahkan Key baru.")
+                st.error("❌ Semua dari 3 API Key cadangan yang kamu masukkan telah mencapai batas kuota harian. Silakan tambahkan Key baru.")
 else:
     st.error("❌ Konfigurasi API belum lengkap di Secrets.")
