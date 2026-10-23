@@ -7,17 +7,14 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Auto-Run Top 10 Parlay", page_icon="⚽", layout="centered")
 
 st.title("⚽ AI Top 10 Auto Parlay Builder (2 Hari Kedepan)")
-st.markdown("Aplikasi pintar dengan sistem **Multi-Key Cadangan Otomatis** yang memindai jadwal pertandingan hari ini hingga 2 hari ke depan, lalu menyusun **Top 10 Legs** terbaik begitu halaman dibuka!")
+st.markdown("Aplikasi pintar dengan sistem **Multi-Key 5 Lapis Cadangan Otomatis** yang memindai jadwal pertandingan hingga 2 hari ke depan dan menyusun **Top 10 Legs** terbaik begitu halaman dibuka!")
 
-# 1. Konfigurasi 3 API Keys Cadangan dari Streamlit Secrets
+# 1. Konfigurasi 5 API Keys Cadangan dari Streamlit Secrets
 try:
     api_keys = []
-    if "GEMINI_API_KEY" in st.secrets:
-        api_keys.append(st.secrets["GEMINI_API_KEY"])
-    if "GEMINI_API_KEY_2" in st.secrets:
-        api_keys.append(st.secrets["GEMINI_API_KEY_2"])
-    if "GEMINI_API_KEY_3" in st.secrets:
-        api_keys.append(st.secrets["GEMINI_API_KEY_3"])
+    for key_name in ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4", "GEMINI_API_KEY_5"]:
+        if key_name in st.secrets:
+            api_keys.append(st.secrets[key_name])
         
     FOOTBALL_KEY = st.secrets["FOOTBALL_DATA_API_KEY"]
     api_ready = len(api_keys) > 0 and bool(FOOTBALL_KEY)
@@ -50,7 +47,7 @@ def fetch_matches_range(api_key, d_from, d_to):
 st.markdown(f"📅 **Rentang Jadwal:** `{date_from}` s/d `{date_to}`")
 st.divider()
 
-# 3. Proses Auto-Run dengan Sistem Cadangan 3 API Key Otomatis
+# 3. Proses Auto-Run dengan Sistem Cadangan 5 API Key Otomatis
 if api_ready:
     st.subheader("🏆 Rekomendasi Top 10 Parlay (2 Hari Kedepan)")
     
@@ -62,7 +59,7 @@ if api_ready:
         else:
             all_available_matches = []
             for m in raw_matches:
-                match_date = m['utcDate'][:10] # Ambil tanggal pertandingannya
+                match_date = m['utcDate'][:10]
                 all_available_matches.append({
                     "date": match_date,
                     "home": m['homeTeam']['name'],
@@ -81,7 +78,7 @@ if api_ready:
             Format jawaban dengan rapi menggunakan Markdown.
             """
             
-            # --- SISTEM PERCOBAAN OTOMATIS BERUNTUN (3 KEY CADANGAN) ---
+            # --- SISTEM PERCOBAAN OTOMATIS BERUNTUN (5 KEY CADANGAN) ---
             success = False
             analysis_text = ""
             
@@ -92,9 +89,9 @@ if api_ready:
                     response = model.generate_content(selection_prompt)
                     analysis_text = response.text
                     success = True
-                    break # Jika berhasil, langsung keluar dari loop
+                    break # Berhasil, keluar dari loop
                 except Exception:
-                    continue # Jika key gagal/limit, otomatis lanjut mencoba key berikutnya
+                    continue # Gagal/limit, lanjut ke key berikutnya secara otomatis
             
             if success:
                 st.markdown(analysis_text)
@@ -105,6 +102,6 @@ if api_ready:
                 st.success(f"✨ Selesai! Sistem telah menyaring 10 laga terbaik untuk periode {date_from} s/d {date_to}.")
                 st.info("💡 **Tips:** Salin pilihan pasaran di atas ke bursa taruhanmu. Batasi dan pasang dengan bijak!")
             else:
-                st.error("❌ Semua dari 3 API Key cadangan yang kamu masukkan telah mencapai batas kuota harian. Silakan tambahkan Key baru.")
+                st.error("❌ Semua dari 5 API Key cadangan yang kamu masukkan telah mencapai batas kuota harian.")
 else:
     st.error("❌ Konfigurasi API belum lengkap di Secrets.")
