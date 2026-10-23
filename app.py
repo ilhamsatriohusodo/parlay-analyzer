@@ -4,10 +4,10 @@ import requests
 from datetime import datetime, timedelta
 
 # Konfigurasi Halaman
-st.set_page_config(page_title="Auto-Run Top 10 Parlay", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Multi-Bill Parlay Builder", page_icon="⚽", layout="centered")
 
-st.title("⚽ AI Top 10 Auto Parlay Builder (2 Hari Kedepan)")
-st.markdown("Aplikasi pintar dengan sistem **Multi-Key 5 Lapis Cadangan Otomatis** yang memindai jadwal pertandingan hingga 2 hari ke depan dan menyusun **Top 10 Legs** terbaik begitu halaman dibuka!")
+st.title("⚽ AI Multi-Bill Auto Parlay Builder (2 Hari Kedepan)")
+st.markdown("Aplikasi pintar dengan sistem **5 Lapis API Key Cadangan** yang membagi rekomendasi menjadi **Bill Utama, Backup, dan High Risk** otomatis begitu halaman dibuka!")
 
 # 1. Konfigurasi 5 API Keys Cadangan dari Streamlit Secrets
 try:
@@ -49,9 +49,9 @@ st.divider()
 
 # 3. Proses Auto-Run dengan Sistem Cadangan 5 API Key Otomatis
 if api_ready:
-    st.subheader("🏆 Rekomendasi Top 10 Parlay (2 Hari Kedepan)")
+    st.subheader("🏆 Analisis 3 Kategori Bill (Utama, Backup, High Risk)")
     
-    with st.spinner("Sedang memindai seluruh jadwal bola untuk 2 hari ke depan dan menyaring 10 pertandingan terbaik..."):
+    with st.spinner("Sedang memindai jadwal bola dan meracik strategi 3 jenis Bill..."):
         raw_matches = fetch_matches_range(FOOTBALL_KEY, date_from, date_to)
         
         if not raw_matches:
@@ -71,11 +71,19 @@ if api_ready:
             Berikut adalah daftar pertandingan bola dari tanggal {date_from} sampai {date_to}:
             {all_available_matches}
             
-            Tugasmu:
-            Pilih tepat **10 pertandingan (Top 10 Legs)** yang paling "WORTH IT" dan memiliki probabilitas tembus tertinggi untuk dipasang dalam satu slip parlay besar.
-            Sertakan informasi tanggal pertandingannya untuk setiap leg.
-            Berikan rekomendasi pasaran spesifik (Over/Under atau Handicap) beserta alasannya.
-            Format jawaban dengan rapi menggunakan Markdown.
+            Tugasmu adalah memilih dan membagi pertandingan ke dalam **3 Kategori Bill Terpisah** (Total mencakup sekitar 10 pertandingan terbaik secara keseluruhan):
+            
+            1. **### 🎯 BILL 1: UTAMA (Aman & Stabil)**
+               - Pilih 3-4 pertandingan dengan probabilitas tembus paling tinggi.
+               - Gunakan pasaran yang sangat konservatif (Contoh: Double Chance 1X/2X, Over 1.5, atau Handicap tipis yang sangat aman).
+            
+            2. **### 🛡️ BILL 2: BACKUP (Alternatif Solid)**
+               - Pilih 3-4 pertandingan sebagai tiket cadangan yang seimbang secara statistik performa tim.
+            
+            3. **### 🔥 BILL 3: HIGH RISK (Berani Ambil Risiko / Cuan Besar)**
+               - Pilih 2-3 pertandingan dengan potensi odds tinggi atau risiko lebih menantang (Contoh: Over 2.5, Handicap penuh, atau Moneyline murni).
+            
+            Sertakan tanggal pertandingan, nama tim, kompetisi, pasaran spesifik, serta alasan singkat untuk setiap leg. Format dengan rapi menggunakan Markdown.
             """
             
             # --- SISTEM PERCOBAAN OTOMATIS BERUNTUN (5 KEY CADANGAN) ---
@@ -89,18 +97,18 @@ if api_ready:
                     response = model.generate_content(selection_prompt)
                     analysis_text = response.text
                     success = True
-                    break # Berhasil, keluar dari loop
+                    break 
                 except Exception:
-                    continue # Gagal/limit, lanjut ke key berikutnya secara otomatis
+                    continue 
             
             if success:
                 st.markdown(analysis_text)
                 
-                # --- KESIMPULAN TIKET TOP 10 PARLAY ---
+                # --- KESIMPULAN TIKET MULTI-BILL ---
                 st.divider()
-                st.markdown("### 🎫 KESIMPULAN TIKET TOP 10 PARLAY")
-                st.success(f"✨ Selesai! Sistem telah menyaring 10 laga terbaik untuk periode {date_from} s/d {date_to}.")
-                st.info("💡 **Tips:** Salin pilihan pasaran di atas ke bursa taruhanmu. Batasi dan pasang dengan bijak!")
+                st.markdown("### 🎫 RINGKASAN STRATEGI 3 BILL")
+                st.success(f"✨ Selesai! Strategi Bill Utama, Backup, dan High Risk untuk periode {date_from} s/d {date_to} berhasil disusun.")
+                st.info("💡 **Tips:** Pasang Bill Utama dengan nominal ideal, Bill Backup dengan nominal sedang, dan Bill High Risk secukupnya saja!")
             else:
                 st.error("❌ Semua dari 5 API Key cadangan yang kamu masukkan telah mencapai batas kuota harian.")
 else:
